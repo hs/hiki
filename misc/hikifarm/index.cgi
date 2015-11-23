@@ -6,7 +6,7 @@ HIKIFARM_RELEASE_DATE = '2006-07-21'
 
 class HikifarmConfig
   attr_reader :ruby, :hiki, :hikifarm_description
-  attr_reader :default_pages, :data_root, :repos_type, :repos_root
+  attr_reader :default_pages, :data_root, :repos_type, :repos_root, :charset
   attr_reader :title, :css, :author, :mail, :cgi_name, :attach_cgi_name, :header, :footer, :cgi, :hikifarm_template_dir
   
   def initialize
@@ -34,6 +34,7 @@ class HikifarmConfig
     footer = nil
     cgi_name = 'index.cgi'
     attach_cgi_name = nil
+    charset = 'UTF-8'
     if FileTest::symlink?( __FILE__ ) then
       hikifarm_template_dir = File::dirname( File::expand_path( File::readlink( __FILE__ ) ) ) + '/template'
     else
@@ -51,6 +52,7 @@ class HikifarmConfig
     @repos_type = repos_type || 'default'
     @repos_root = repos_root
 
+    @charset = charset
     @title = title
     @css = css
     @author = author
@@ -70,7 +72,7 @@ class HikifarmConfig
     if @repos_root && %r!^(/|[a-z]:)! !~ @repos_root
       msg = "Hiki does not support remote repository now. " + 
         "Please modify &quot;repos_root&quot; entry of &quot;hikifarm.conf&quot; file."
-      page = ErrorPage.new(@hikifarm_template_dir, @author, @mail, @css, @title, msg)
+      page = ErrorPage.new(@hikifarm_template_dir, @charset, @author, @mail, @css, @title, msg)
       body = page.to_s
       print @cgi.header(page.headings)
       print body
@@ -191,6 +193,12 @@ class Hikifarm
   def conf(wiki, hiki)
 <<CONF
 hiki=''
+data_path = ''
+repos_root = ''
+cvsroot = ''
+repos_type=''
+attach_cgi_name = ''
+charset = ''
 eval( open( '../hikifarm.conf' ){|f|f.read.untaint} )
 __my_wiki_name__ = '#{wiki}'
 eval( File::open( "\#{hiki}/hiki.conf" ){|f| f.read.untaint} )
@@ -201,6 +209,12 @@ CONF
 <<-INDEX
 #!#{@ruby}
 hiki=''
+data_path = ''
+repos_root = ''
+cvsroot = ''
+repos_type=''
+attach_cgi_name = ''
+charset = ''
 eval( open( '../hikifarm.conf' ){|f|f.read.untaint} )
 $:.unshift "\#{hiki}"
 load "\#{hiki}/hiki.cgi"
@@ -211,6 +225,7 @@ INDEX
 <<-INDEX
 #!#{@ruby}
 hiki=''
+charset = ''
 eval( open( '../hikifarm.conf' ){|f|f.read.untaint} )
 $:.unshift "\#{hiki}"
 load "\#{hiki}/misc/plugin/attach/attach.cgi"
@@ -224,12 +239,13 @@ end
 class ErbPage
   attr_reader :headings
 
-  def initialize(template_dir)
+  def initialize(template_dir, charset)
     @headings = {
-      'type' => 'text/html; charset=EUC-JP'
+      'type' => "text/html; charset=#{charset}"
     }
 
     @template_dir = template_dir
+    @charset = charset
   end
 
   def to_s
@@ -240,13 +256,13 @@ class ErbPage
 
   private
   def template
-    File.read("#{@template_dir}/#{template_name}".untaint)
+    File.read("#{@template_dir}/#{template_name}".untaint).force_encoding(@charset)
   end
 end
 
 class ErrorPage < ErbPage
-  def initialize(template_dir, author, mail, css, title, msg)
-    super(template_dir)
+  def initialize(template_dir, charset, author, mail, css, title, msg)
+    super(template_dir, charset)
     @author = author
     @mail = mail
     @css = css
@@ -261,14 +277,15 @@ class ErrorPage < ErbPage
 end
 
 class HikifarmIndexPage < ErbPage
-  def initialize(farm, hikifarm_uri, template_dir, author, mail, css, title, header_file, footer_file, msg)
-    super(template_dir)
+  def initialize(farm, hikifarm_uri, template_dir, charset, author, mail, css, title, header_file, footer_file, msg)
+    super(template_dir, charset)
     @farm = farm
     @hikifarm_uri = hikifarm_uri
     @author = author
     @mail = mail
     @css = css
     @title = title
+    @charset = charset
     @header_content = if header_file
                         File.exist?(header_file) ? File.read(header_file).untaint : error_msg("!! #{header_file} が存在しません !!")
                       end
@@ -322,9 +339,9 @@ class HikifarmRSSPage < ErbPage
     end
   end
   
-  def initialize(farm, hikifarm_uri, template_dir, hikifarm_description,
+  def initialize(farm, hikifarm_uri, template_dir, charset, hikifarm_description,
                  author, mail, title)
-    super(template_dir)
+    super(template_dir, charset)
     @farm = farm
     @hikifarm_uri = hikifarm_uri
     @hikifarm_base_uri = @hikifarm_uri.sub(%r|[^/]*$|, '')
@@ -332,6 +349,7 @@ class HikifarmRSSPage < ErbPage
     @author = author
     @mail = mail
     @title = title
+    @charset = charset
     @wikilist = @farm.wikilist.sort_by{|x| x.mtime}.reverse[0..14]
     setup_headings
   end
@@ -343,7 +361,7 @@ class HikifarmRSSPage < ErbPage
   
   def setup_headings
     @headings['type'] = 'text/xml'
-    @headings['charset'] = 'EUC-JP'
+    @headings['charset'] = @charset
     @headings['Content-Language'] = 'ja'
     @headings['Pragma'] = 'no-cache'
     @headings['Cache-Control'] = 'no-cache'
@@ -481,7 +499,7 @@ class App
     page = nil
     if command_name == HikifarmRSSPage.command_name
       require 'time'
-      page = HikifarmRSSPage.new(@farm, hikifarm_uri, @conf.hikifarm_template_dir,
+      page = HikifarmRSSPage.new(@farm, hikifarm_uri, @conf.hikifarm_template_dir, @conf.charset,
                                  @conf.hikifarm_description,
                                  @conf.author, @conf.mail, @conf.title)
     elsif 'POST' == @cgi.request_method and @cgi.params['wiki'][0] and @cgi.params['wiki'][0].length > 0
@@ -496,7 +514,8 @@ class App
         msg = %Q|#{$!.to_s}\n#{$@.join("\n")}|
       end
     end
-    page ||= HikifarmIndexPage.new(@farm, hikifarm_uri, @conf.hikifarm_template_dir, @conf.author, @conf.mail, @conf.css, @conf.title,
+    page ||= HikifarmIndexPage.new(@farm, hikifarm_uri, @conf.hikifarm_template_dir, @conf.charset,
+                                   @conf.author, @conf.mail, @conf.css, @conf.title,
                                    @conf.header, @conf.footer, msg)
     body = page.to_s
     print @cgi.header(page.headings)

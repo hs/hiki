@@ -1,5 +1,6 @@
 #!/usr/bin/env rackup
 # -*- ruby -*-
+$LOAD_PATH.unshift(File.dirname(__FILE__))
 require 'hiki/farm'
 require 'hiki/app'
 require 'hiki/attachment'
