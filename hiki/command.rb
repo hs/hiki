@@ -335,7 +335,8 @@ module Hiki
       @cmd = 'edit'
 
       if rev = @request.params['r']
-        text = @conf.repos.get_revision(page, rev.to_i)
+        raise 'Illegal revision' unless rev.match(/^[0-9a-zA-Z]+/)
+        text = @conf.repos.get_revision(page, rev)
         raise 'No such revision.' if text.empty?
       else
         text = ( @db.load( page ) || '' ) unless text
