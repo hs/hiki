@@ -19,35 +19,48 @@ require 'hiki/util'
 
 include Hiki::Util
 
+def redirect(cgi, url)
+  body = %Q[
+           <html>
+           <head>
+           <meta http-equiv="refresh" content="0;url=#{url}">
+           <title>moving...</title>
+           </head>
+           <body>Wait or <a href="#{url}">Click here!</a></body>
+           </html>]
+  print cgi.header( 'type' => 'text/html' )
+  puts body
+end
+
 def attach_file
   @conf = Hiki::Config.new
   set_conf(@conf)
   cgi = CGI.new
 
   params     = cgi.params
-  page       = params['p'] ? params['p'].read : 'FrontPage'
-  command = params['command'] ? params['command'].read : 'view'
+  page       = params['p'] ? params['p'].first.read : 'FrontPage'
+  command = params['command'].first ? params['command'].first.read : 'view'
   command = 'view' unless ['view', 'edit'].index(command)
   r = ''
 
   max_size = @conf.options['attach_size'] || 1048576
 
-  if cgi.params['attach']
+  if cgi.params['attach'].first
     begin
-      raise 'Invalid request.' unless params['p'] && params['attach_file']
+      raise 'Invalid request.' unless params['p'].first && params['attach_file'].first
 
-      filename   = File.basename(params['attach_file'].original_filename.gsub(/\\/, '/'))
+      filename   = File.basename(params['attach_file'].first.original_filename.gsub(/\\/, '/'))
       cache_path = "#{@conf.cache_path}/attach"
 
       Dir.mkdir(cache_path) unless test(?e, cache_path.untaint)
       attach_path = "#{cache_path}/#{escape(page)}"
       Dir.mkdir(attach_path) unless test(?e, attach_path.untaint)
       path = "#{attach_path}/#{escape(filename.to_euc)}"
-      if params['attach_file'].size > max_size
+      if params['attach_file'].first.size > max_size
         raise "File size is larger than limit (#{max_size} bytes)."
       end
       unless filename.empty?
-        content = params['attach_file'].read
+        content = params['attach_file'].first.read
         if (!@conf.options['attach.allow_script']) && (/<script\b/i =~ content)
           raise "You cannot attach a file that contains scripts."
         else
@@ -64,14 +77,14 @@ def attach_file
       print cgi.header( 'type' => 'text/plain' )
       puts ex.message
     end
-  elsif cgi.params['detach'] then
+  elsif cgi.params['detach'].first then
     attach_path = "#{@conf.cache_path}/attach/#{escape(page)}"
 
     begin
       Dir.foreach(attach_path) do |file|
-        next unless params["file_#{file}"]
+        next unless params["file_#{file}"].first
         path = "#{attach_path}/#{file}"
-        if FileTest.file?(path.untaint) and params["file_#{file}"].read
+        if FileTest.file?(path.untaint) and params["file_#{file}"].first.read
           File.unlink(path)
           r << "FILE        = #{File.basename(path)}\n"
         end
