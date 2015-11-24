@@ -77,3 +77,9 @@ Hikifarm 設置完了後に vc-backend-setup.cgi を実行してください。
 実行方法は、vc-backend-setup.cgi を Hikifarm の index.cgi を設置したディ
 レクトリにコピーし、CGI としてアクセスすれば OK です (シェルが使える場合
 は、コマンドラインから実行してもかまいません)。
+
+!! attach プラグインについて
+Hikifarm内のWikiでattachプラグインを使う場合、以下の手順になります。
+# Hikiのインストールパスにmisc/plugin/attach/attach.cgiをコピー
+# hikifarmを設置した場所に作成されたWiki名のディレクトリにmisc/hikifarm/attach.cgiをコピー
+# Wikiの管理ページでattach.rbプラグインを有効にする
