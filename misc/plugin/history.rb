@@ -180,6 +180,8 @@ module Hiki
           op << "<a href=\"#{@conf.cgi_name}#{cmdstr('plugin', "plugin=history_diff;p=#{escape(@p)};r=#{rev}")}\">current</a>" unless prevdiff == 1
           op << " | " unless (prevdiff == 1 || prevdiff >= revs.size)
           op << "<a href=\"#{@conf.cgi_name}#{cmdstr('plugin', "plugin=history_diff;p=#{escape(@p)};r=#{rev};r2=#{revs[prevdiff][0]}")}\">previous</a>" unless prevdiff >= revs.size
+          op << " | " if prevdiff > 1
+          op << "<a href=\"#{@conf.cgi_name}#{cmdstr('plugin', "plugin=history_diff;p=#{escape(@p)};r=#{rev};r2=#{revs[prevdiff - 2][0]}")}\">next</a>" if prevdiff > 1
           op << "]"
         end
         if @conf.options['history.hidelog']
@@ -234,8 +236,11 @@ module Hiki
     def history_diff
       # make command string
       r = @request.params['r'] || '1'
+      raise PluginError, "Illegal revision" unless r.match(/^[0-9a-zA-Z]+$/)
       r2 = @request.params['r2']
-      if r2.nil? || r2.to_i == 0
+      raise PluginError, "Illegal revision" unless r2.match(/^[0-9a-zA-Z]+$/)
+      is_git = history_repos_type.match(/^git/)
+      if r2.nil? || (is_git.nil? && r2.to_i == 0)
         new = @db.load(@p)
         old = @conf.repos.get_revision(@p, r)
       else
@@ -246,7 +251,7 @@ module Hiki
       # parse the result and make revisions array
       revs = @conf.repos.revisions(@p)
 
-      prev2_rev, prev_rev, curr_rev, next_rev = recent_revs(revs, r.to_i)
+      prev2_rev, prev_rev, curr_rev, next_rev = recent_revs(revs, r)
       last_rev = revs[0]
 
       diff = word_diff( old, new )
@@ -260,19 +265,25 @@ module Hiki
       sources << "<a href=\"#{@conf.cgi_name}#{cmdstr('history', "p=#{escape(@p)}")}\">#{h(history_backto_summary_label)}</a><br>\n"
       sources << "\n"
 
-      if prev_rev
-        do_link = (last_rev and prev_rev and last_rev[0] != prev_rev[0])
-        sources << diff_link(prev_rev, nil, nil, "HEAD", do_link)
+      if is_git
+        rev_r = revs.assoc(r)
+        rev_r2 = revs.assoc(r2)
+        sources << "[" << (rev_r.nil? ? "HEAD" : rev_r[1]) << "->" << (rev_r2.nil? ? "HEAD" : rev_r2[1]) << "]"
+      else
+        if prev_rev
+          do_link = (last_rev and prev_rev and last_rev[0] != prev_rev[0])
+          sources << diff_link(prev_rev, nil, nil, "HEAD", do_link)
+        end
+        if prev_rev and prev2_rev
+          sources << diff_link(prev_rev, prev2_rev, nil, nil, true)
+        end
+        sources << diff_link(curr_rev, r2.nil? ? nil : prev_rev, nil, nil, false)
+        if next_rev
+          sources << diff_link(next_rev, curr_rev, nil, nil, true)
+        end
+        do_link = (r2 and last_rev and last_rev[0] != curr_rev[0])
+        sources << diff_link(curr_rev, nil, nil, "HEAD", do_link)
       end
-      if prev_rev and prev2_rev
-        sources << diff_link(prev_rev, prev2_rev, nil, nil, true)
-      end
-      sources << diff_link(curr_rev, r2.nil? ? nil : prev_rev, nil, nil, false)
-      if next_rev
-        sources << diff_link(next_rev, curr_rev, nil, nil, true)
-      end
-      do_link = (r2 and last_rev and last_rev[0] != curr_rev[0])
-      sources << diff_link(curr_rev, nil, nil, "HEAD", do_link)
 
       sources << "</div>\n<br>\n"
       sources << "<ul>"
