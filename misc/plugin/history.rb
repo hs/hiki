@@ -80,6 +80,15 @@ module Hiki
       @conf.repos_type # 'cvs' or 'svn' or 'svnsingle'
     end
 
+	def git_repo?
+      history_repos_type.match(/^git/)
+	end
+
+	def get_current_revision
+      git_repo? ? @conf.repos.revisions(@p)[0][0] : '1'
+	end
+
+
     def history_repos_root
       @conf.repos_root # hiki.conf
     end
@@ -180,8 +189,6 @@ module Hiki
           op << "<a href=\"#{@conf.cgi_name}#{cmdstr('plugin', "plugin=history_diff;p=#{escape(@p)};r=#{rev}")}\">current</a>" unless prevdiff == 1
           op << " | " unless (prevdiff == 1 || prevdiff >= revs.size)
           op << "<a href=\"#{@conf.cgi_name}#{cmdstr('plugin', "plugin=history_diff;p=#{escape(@p)};r=#{rev};r2=#{revs[prevdiff][0]}")}\">previous</a>" unless prevdiff >= revs.size
-          op << " | " if prevdiff > 1
-          op << "<a href=\"#{@conf.cgi_name}#{cmdstr('plugin', "plugin=history_diff;p=#{escape(@p)};r=#{rev};r2=#{revs[prevdiff - 2][0]}")}\">next</a>" if prevdiff > 1
           op << "]"
         end
         if @conf.options['history.hidelog']
@@ -198,6 +205,8 @@ module Hiki
           case history_repos_type
           when 'cvs'
             sources << " <tr><td rowspan=\"2\">#{rev}</td><td>#{h(time)}</td><td>#{h(changes)}</td><td align=right>#{op}</td></tr><tr><td colspan=\"3\">#{h(log)}</td></tr>\n"
+          when 'gitfarm'
+            sources << " <tr><td rowspan=\"2\">#{rev}</td><td>#{h(time)}</td><td align=right>#{op}</td></tr><tr><td colspan=\"2\">#{h(unescape(log))}</td></tr>\n"
           else
             sources << " <tr><td rowspan=\"2\">#{rev}</td><td>#{h(time)}</td><td align=right>#{op}</td></tr><tr><td colspan=\"2\">#{h(log)}</td></tr>\n"
           end
@@ -212,20 +221,24 @@ module Hiki
     # Output source at an arbitrary revision
     def history_src
       # make command string
-      r = @request.params['r'] || '1'
+      r = @request.params['r'] || get_current_revision
       txt = @conf.repos.get_revision(@p, r)
       txt = "*** no source ***" if txt.empty?
 
       # construct output sources
       sources = ''
-      sources << "<div class=\"section\">\n"
+      sources << "<div class=\"section\" style=\"padding:5px;\">\n"
       sources << @plugin.hiki_anchor(escape(@p), @plugin.page_name(@p))
       sources << "\n<br>\n"
-      sources << "<a href=\"#{@conf.cgi_name}#{cmdstr('edit', "p=#{escape(@p)};r=#{h(r)}")}\">#{h(history_revert_label)}</a><br>\n"
-      sources << "<a href=\"#{@conf.cgi_name}#{cmdstr('plugin', "plugin=history_diff;p=#{escape(@p)};r=#{h(r)}")}\">#{h(history_diffto_current_label)}</a><br>\n"
-      sources << "<a href=\"#{@conf.cgi_name}#{cmdstr('history', "p=#{escape(@p)}")}\">#{h(history_backto_summary_label)}</a><br>\n"
+      sources << "<div style=\"text-align:right; float:right;\">\n"
+	  if r != get_current_revision
+      sources << "[<a href=\"#{@conf.cgi_name}#{cmdstr('edit', "p=#{escape(@p)};r=#{h(r)}")}\">#{h(history_revert_label)}</a>] \n"
+      sources << "[<a href=\"#{@conf.cgi_name}#{cmdstr('plugin', "plugin=history_diff;p=#{escape(@p)};r=#{h(r)}")}\">#{h(history_diffto_current_label)}</a>] \n"
+	  end
+      sources << "[<a href=\"#{@conf.cgi_name}#{cmdstr('history', "p=#{escape(@p)}")}\">#{h(history_backto_summary_label)}</a>]\n"
       sources << "</div>\n"
-      sources << "<div class=\"diff\">\n"
+      sources << "</div>\n"
+      sources << "<div class=\"diff\" style=\"clear:both; margin:5px; padding:10px; border:solid 1px #888;\">\n"
       sources << h(txt).gsub(/\n/, "<br>\n").gsub(/ /, '&nbsp;')
       sources << "</div>\n"
 
@@ -235,12 +248,11 @@ module Hiki
     # Output diff between two arbitrary revisions
     def history_diff
       # make command string
-      r = @request.params['r'] || '1'
+      r = @request.params['r'] || get_current_revision
       raise PluginError, "Illegal revision" unless r.match(/^[0-9a-zA-Z]+$/)
       r2 = @request.params['r2']
-      raise PluginError, "Illegal revision" unless r2.match(/^[0-9a-zA-Z]+$/)
-      is_git = history_repos_type.match(/^git/)
-      if r2.nil? || (is_git.nil? && r2.to_i == 0)
+      raise PluginError, "Illegal revision" unless r2.nil? or r2.match(/^[0-9a-zA-Z]+$/)
+      if r2.nil? || (r2.match(/^[0-9]+$/) && r2.to_i == 0)
         new = @db.load(@p)
         old = @conf.repos.get_revision(@p, r)
       else
@@ -258,14 +270,11 @@ module Hiki
 
       # construct output sources
       sources = ''
-      sources << "<div class=\"section\">\n"
+      sources << "<div class=\"section\" style=\"padding:5px;\">\n"
       sources << @plugin.hiki_anchor(escape(@p), @plugin.page_name(@p))
       sources << "<br>\n"
-      sources << "<a href=\"#{@conf.cgi_name}#{cmdstr('plugin', "plugin=history_src;p=#{escape(@p)};r=#{curr_rev[0]}")}\">#{h(history_view_this_version_src_label)}</a><br>\n" if curr_rev
-      sources << "<a href=\"#{@conf.cgi_name}#{cmdstr('history', "p=#{escape(@p)}")}\">#{h(history_backto_summary_label)}</a><br>\n"
-      sources << "\n"
 
-      if is_git
+      if git_repo?
         rev_r = revs.assoc(r)
         rev_r2 = revs.assoc(r2)
         sources << "[" << (rev_r.nil? ? "HEAD" : rev_r[1]) << "->" << (rev_r2.nil? ? "HEAD" : rev_r2[1]) << "]"
@@ -285,12 +294,17 @@ module Hiki
         sources << diff_link(curr_rev, nil, nil, "HEAD", do_link)
       end
 
-      sources << "</div>\n<br>\n"
+      sources << "<div style=\"text-align:right; float:right;\">\n"
+      sources << "[<a href=\"#{@conf.cgi_name}#{cmdstr('plugin', "plugin=history_src;p=#{escape(@p)};r=#{curr_rev[0]}")}\">#{h(history_view_this_version_src_label)}</a>] \n" if curr_rev
+      sources << "[<a href=\"#{@conf.cgi_name}#{cmdstr('history', "p=#{escape(@p)}")}\">#{h(history_backto_summary_label)}</a>]<br>\n"
+      sources << "\n"
+      sources << "</div>\n"
+      sources << "</div>"
+      sources << "<div class=\"diff\" style=\"clear:both; padding: 10px; border: solid 1px #888;\">#{diff.gsub(/\n/, "<br>\n")}</div>\n"
       sources << "<ul>"
       sources << "  <li>#{history_add_line_label}</li>"
       sources << "  <li>#{history_delete_line_label}</li>"
       sources << "</ul>"
-      sources << "<div class=\"diff\">#{diff.gsub(/\n/, "<br>\n")}</div>\n"
 
       history_output(sources)
     end
