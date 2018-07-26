@@ -17,6 +17,7 @@ module Hiki
     def import(wiki)
       Dir.chdir("#{@data_root}") do
         system("git add -- #{wiki}/text")
+        system("git add -- #{wiki}/info.db > /dev/null 2>&1")
         system("git commit -q -m \"Starting #{wiki} from #{ENV['REMOTE_ADDR']}\" > /dev/null 2>&1".untaint)
       end
     end
@@ -24,6 +25,7 @@ module Hiki
     def update(wiki)
       Dir.chdir("#{@data_root}") do
         system("git add -- #{wiki}/text > /dev/null 2>&1")
+        system("git add -- #{wiki}/info.db > /dev/null 2>&1")
         system("git commit -q -m \"Upadte #{wiki} from #{ENV['REMOTE_ADDR']}\" > /dev/null 2>&1".untaint)
       end
     end
@@ -43,6 +45,7 @@ module Hiki
       escaped_page = File.join(@text_dir, escape(page).untaint)
       Dir.chdir(@data_root) do
         system("git add -- #{escaped_page} > /dev/null 2>&1")
+        system("git add -- #{@wiki_name}/info.db > /dev/null 2>&1")
         # titleのみ変更した場合に、"nothing to commit, ..." が返される
         system("git commit -q -m \"commit #{escaped_page}: #{msg.untaint}\" > /dev/null 2>&1")
       end
@@ -62,6 +65,7 @@ module Hiki
       escaped_page = File.join(@text_dir, escape(page).untaint)
       Dir.chdir(@data_root) do
         system("git rm -- #{escaped_page} > /dev/null 2>&1")
+        system("git add -- #{@wiki_name}/info.db > /dev/null 2>&1")
         system("git commit -q -m \"delete #{escaped_page}: #{msg.untaint}\" > /dev/null 2>&1")
       end
     end
@@ -72,6 +76,7 @@ module Hiki
       Dir.chdir(@data_root) do
         raise ArgumentError, "#{new_page} has already existed." if File.exist?(new_page)
         system("git mv -- #{old_page} #{new_page} > /dev/null 2>&1")
+        system("git add -- #{@wiki_name}/info.db > /dev/null 2>&1")
         system("git commit -q -m 'Rename #{old_page} to #{new_page}' > /dev/null 2>&1")
       end
     end
