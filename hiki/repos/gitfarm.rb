@@ -83,8 +83,9 @@ module Hiki
 
     def get_revision(page, revision)
       ret = ''
+      escaped_page = File.join(@text_dir, escape(page).untaint)
       Dir.chdir(@data_root) do
-        open("|git cat-file blob #{revision}".untaint) do |f|
+        open("|git show #{revision}:#{escaped_page}".untaint) do |f|
           ret = f.read
         end
       end
@@ -94,21 +95,15 @@ module Hiki
     def revisions(page)
       require 'time'
       all_log = ''
+      git_logfmt="%h\t%ad\t%s"
       revs = []
       escaped_page = File.join(@text_dir, escape(page).untaint)
       Dir.chdir(@data_root) do
-        open("|git log --raw -- #{escaped_page}") do |f|
-          all_log = f.read
-        end
-      end
-      all_log.split(/^commit (?:[a-fA-F\d]+)\n/).each do |log|
-        if /\AAuthor:\s*(.*?)\nDate:\s*(.*?)\n(.*?)
-            \n:\d+\s\d+\s[a-fA-F\d]+\.{3}\s([a-fA-F\d]+)\.{3}\s\w
-               \s+#{Regexp.escape(escaped_page)}\n+\z/xm =~ log
-          revs << [$4,
-                   Time.parse("#{$2}Z").localtime.strftime('%Y/%m/%d %H:%M:%S'),
-                   "", # $1,
-                   $3.strip]
+        open("|git log --date=iso --pretty=format:'#{git_logfmt}' --  -- #{escaped_page}") do |f|
+          f.each_line do |line|
+            hash,date,subject = line.chomp.split(/\t/)
+            revs << [hash, date, '', subject]
+          end
         end
       end
       revs
