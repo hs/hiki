@@ -38,8 +38,8 @@ module BasicScenario
   def test_edit_front_page
     visit("/")
     click_link("Edit")
-    within("div.textarea textarea") do
-      assert_equal(<<TEXT, text)
+    textarea = find("div.textarea textarea")
+    assert_equal(<<TEXT, textarea.value)
 !ようこそ
 
 これはWikiエンジン[[Hiki|http://hikiwiki.org/ja/]]のFrontPageです。
@@ -56,7 +56,6 @@ Hikiの書式はオリジナルWikiに似てますので、オリジナルの書
 スムーズにコンテンツを記述することができるでしょう。ただし、一部、独自に拡張している
 書式もありますので、詳細についてはTextFormattingRulesを参照してください。
 TEXT
-    end
     fill_in("contents", with: "FrontPage contents")
     click_button("Save")
     click_link("Click here!")
@@ -108,7 +107,7 @@ class BasicScenario::Repository::TestGit < Test::Unit::TestCase
   end
 
   def teardown
-    rm_rf(@wiki_data_path)
+    rm_rf(@wiki_data_path) if @wiki_data_path
   end
 end
 
@@ -133,7 +132,7 @@ class BasicScenario::Repository::TestHg < Test::Unit::TestCase
   end
 
   def teardown
-    rm_rf(@wiki_data_path)
+    rm_rf(@wiki_data_path) if @wiki_data_path
   end
 end
 
@@ -163,7 +162,7 @@ class BasicScenario::Repository::TestSVN < Test::Unit::TestCase
   end
 
   def teardown
-    rm_rf(@wiki_data_path)
-    rm_rf(@wiki_repo_path)
+    rm_rf(@wiki_data_path) if @wiki_data_path
+    rm_rf(@wiki_repo_path) if @wiki_repo_path
   end
 end

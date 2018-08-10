@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
-require 'test_helper'
-require 'hiki/util'
+require "test_helper"
+require "hiki/util"
 
 class TestUtil < Test::Unit::TestCase
   include Hiki::Util
@@ -16,18 +16,18 @@ class TestUtil < Test::Unit::TestCase
   end
 
   def test_word_diff_html
-    assert_equal( "123\n<ins class=\"added\">abc</ins>\n456\n", word_diff( @t1, @t2 ) )
-    assert_equal( "<del class=\"deleted\">こんにちは</del><ins class=\"added\">こんばんは</ins>、私の<del class=\"deleted\">名前はわたなべです</del><ins class=\"added\">名前はまつもとです</ins>。\n<ins class=\"added\">Rubyを作ったのは私です。</ins>私は<del class=\"deleted\">Just Another </del>Ruby <del class=\"deleted\">Porter</del><ins class=\"added\">Hacker</ins>です。", word_diff( @t4, @t5) )
+    assert_equal("123\n<ins class=\"added\">abc</ins>\n456\n", word_diff(@t1, @t2))
+    assert_equal("<del class=\"deleted\">こんにちは</del><ins class=\"added\">こんばんは</ins>、私の<del class=\"deleted\">名前はわたなべです</del><ins class=\"added\">名前はまつもとです</ins>。\n<ins class=\"added\">Rubyを作ったのは私です。</ins>私は<del class=\"deleted\">Just Another </del>Ruby <del class=\"deleted\">Porter</del><ins class=\"added\">Hacker</ins>です。", word_diff(@t4, @t5))
   end
 
   def test_word_diff_text
-    assert_equal( "123\n{+abc+}\n456\n", word_diff_text( @t1, @t2 ) )
-    assert_equal( "[-こんにちは-]{+こんばんは+}、私の[-名前はわたなべです-]{+名前はまつもとです+}。\n{+Rubyを作ったのは私です。+}私は[-Just Another -]Ruby [-Porter-]{+Hacker+}です。", word_diff_text( @t4, @t5 ) )
+    assert_equal("123\n{+abc+}\n456\n", word_diff_text(@t1, @t2))
+    assert_equal("[-こんにちは-]{+こんばんは+}、私の[-名前はわたなべです-]{+名前はまつもとです+}。\n{+Rubyを作ったのは私です。+}私は[-Just Another -]Ruby [-Porter-]{+Hacker+}です。", word_diff_text(@t4, @t5))
   end
 
   def test_unified_diff
-    assert_equal( "@@ -1,2 +1,3 @@\n 123\n+abc\n 456\n", unified_diff( @t1, @t2 ) )
-    assert_equal( "@@ -1,3 +1,2 @@\n 123\n-abc\n 456\n", unified_diff( @t2, @t1 ) )
+    assert_equal("@@ -1,2 +1,3 @@\n 123\n+abc\n 456\n", unified_diff(@t1, @t2))
+    assert_equal("@@ -1,3 +1,2 @@\n 123\n-abc\n 456\n", unified_diff(@t2, @t1))
   end
 
   def test_plugin_error
@@ -74,21 +74,21 @@ STR
 
   def test_escape
     expected = [
-                "%E3%81%82%E3%81%84%E3%81%86%E3%81%88%E3%81%8A",
-                "%E3%83%95%E3%83%AD%E3%83%B3%E3%83%88%E3%83%9A%E3%83%BC%E3%82%B8",
-                "%A4%A2%A4%A4%A4%A6%A4%A8%A4%AA",
-                "%A5%D5%A5%ED%A5%F3%A5%C8%A5%DA%A1%BC%A5%B8",
-                "%82%A0%82%A2%82%A4%82%A6%82%A8",
-                "%83t%83%8D%83%93%83g%83y%81%5B%83W",
-               ]
+      "%E3%81%82%E3%81%84%E3%81%86%E3%81%88%E3%81%8A",
+      "%E3%83%95%E3%83%AD%E3%83%B3%E3%83%88%E3%83%9A%E3%83%BC%E3%82%B8",
+      "%A4%A2%A4%A4%A4%A6%A4%A8%A4%AA",
+      "%A5%D5%A5%ED%A5%F3%A5%C8%A5%DA%A1%BC%A5%B8",
+      "%82%A0%82%A2%82%A4%82%A6%82%A8",
+      "%83t%83%8D%83%93%83g%83y%81%5B%83W",
+    ]
     actual = [
-              "あいうえお",
-              "フロントページ",
-              NKF.nkf("-m0 -We", "あいうえお"),
-              NKF.nkf("-m0 -We", "フロントページ"),
-              NKF.nkf("-m0 -Ws", "あいうえお"),
-              NKF.nkf("-m0 -Ws", "フロントページ"),
-             ]
+      "あいうえお",
+      "フロントページ",
+      NKF.nkf("-m0 -We", "あいうえお"),
+      NKF.nkf("-m0 -We", "フロントページ"),
+      NKF.nkf("-m0 -Ws", "あいうえお"),
+      NKF.nkf("-m0 -Ws", "フロントページ"),
+    ]
     assert_equal(expected, actual.map{|v| escape(v) })
   end
 end

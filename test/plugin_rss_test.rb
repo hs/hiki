@@ -1,33 +1,26 @@
 # To do: Handle Exception raised in Time.parse line 92
 
-require 'test_helper'
-require 'time'
-require 'cgi/util'
-require 'rack'
-require File.join(File.dirname(__FILE__), *%w[.. hiki request])
-require File.join(File.dirname(__FILE__), *%w[.. hiki response])
+require "test_helper"
+require "time"
+require "cgi/util"
+require "rack"
+
+require "hiki/request"
+require "hiki/response"
 
 class Plugin_RSS_Unit_Tests < Test::Unit::TestCase
   def setup
     @now = Time.parse(CGI.rfc1123_date(Time.now))
     @request = Object.new
-    class << @request
-      def params
-        {}
-      end
-    end
+    stub(@request).params.returns({})
     @conf = Object.new
-    class << @conf
-      def charset
-      end
-      def lang
-      end
-    end
+    stub(@conf).charset
+    stub(@conf).lang
     plugin_file = File.expand_path(File.join(File.dirname(__FILE__), *%w{.. misc plugin rss.rb}))
     instance_eval(File.read(plugin_file))
     class << self
       define_method(:rss_body) {|*page_num|
-        ['', @now]
+        ["", @now]
       }
     end
 
@@ -35,7 +28,7 @@ class Plugin_RSS_Unit_Tests < Test::Unit::TestCase
   end
 
   def test_rss_returns_304_when_if_modified_since_is_same_to_last_modified
-    ENV['HTTP_IF_MODIFIED_SINCE'] = CGI.rfc1123_date(@now)
+    ENV["HTTP_IF_MODIFIED_SINCE"] = CGI.rfc1123_date(@now)
     assert_equal(304, rss.status)
   end
 
