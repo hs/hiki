@@ -65,13 +65,13 @@ class Repos_Git_Tests < Test::Unit::TestCase
     write("HogeHoge", "hogehoge1")
     Dir.chdir(@text_dir) {git("add", "HogeHoge")}
     Dir.chdir(@text_dir) {git("commit", "-m", "First", "HogeHoge")}
-    Dir.chdir(@text_dir) {rev1 = git("hash-object", "HogeHoge")}
+    Dir.chdir(@text_dir) {rev1 = git("log", "-1", "--oneline", "--", "HogeHoge")}
     write("HogeHoge", "hogehoge2")
     Dir.chdir(@text_dir) {git("commit", "-m", "Second", "HogeHoge")}
-    Dir.chdir(@text_dir) {rev2 = git("hash-object", "HogeHoge")}
+    Dir.chdir(@text_dir) {rev2 = git("log", "-1", "--oneline", "--", "HogeHoge")}
     write("HogeHoge", "hogehoge3")
     Dir.chdir(@text_dir) {git("commit", "-m", "Third", "HogeHoge")}
-    Dir.chdir(@text_dir) {rev3 = git("hash-object", "HogeHoge")}
+    Dir.chdir(@text_dir) {rev3 = git("log", "-1", "--oneline", "--", "HogeHoge")}
 
     assert_equal("hogehoge1", @repos.get_revision("HogeHoge", rev1[0, 7]))
     assert_equal("hogehoge2", @repos.get_revision("HogeHoge", rev2[0, 7]))
@@ -83,15 +83,15 @@ class Repos_Git_Tests < Test::Unit::TestCase
     write("HogeHoge", "hogehoge1")
     Dir.chdir(@text_dir) {git("add", "HogeHoge")}
     Dir.chdir(@text_dir) {git("commit", "-m", "First", "HogeHoge")}
-    Dir.chdir(@text_dir) {rev1 = git("hash-object", "HogeHoge")}
+    Dir.chdir(@text_dir) {rev1 = git("log", "-1", "--oneline", "--", "HogeHoge")}
     modified1 = Time.now.localtime.strftime("%Y/%m/%d %H:%M:%S")
     write("HogeHoge", "hogehoge2")
     Dir.chdir(@text_dir) {git("commit", "-m", "Second", "HogeHoge")}
-    Dir.chdir(@text_dir) {rev2 = git("hash-object", "HogeHoge")}
+    Dir.chdir(@text_dir) {rev2 = git("log", "-1", "--oneline", "--", "HogeHoge")}
     modified2 = Time.now.localtime.strftime("%Y/%m/%d %H:%M:%S")
     write("HogeHoge", "hogehoge3")
     Dir.chdir(@text_dir) {git("commit", "-m", "Third", "HogeHoge")}
-    Dir.chdir(@text_dir) {rev3 = git("hash-object", "HogeHoge")}
+    Dir.chdir(@text_dir) {rev3 = git("log", "-1", "--oneline", "--", "HogeHoge")}
     modified3 = Time.now.localtime.strftime("%Y/%m/%d %H:%M:%S")
 
     expected = [

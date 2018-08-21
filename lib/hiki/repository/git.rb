@@ -44,7 +44,7 @@ module Hiki
       def get_revision(page, revision)
         ret = ""
         Dir.chdir(@text_dir) do
-          open("|git cat-file blob #{revision}".untaint) do |f|
+          open("|git show #{revision}:#{escape(page)}".untaint) do |f|
             ret = f.read
           end
         end
@@ -56,18 +56,11 @@ module Hiki
         all_log = ""
         revs = []
         Dir.chdir(@text_dir) do
-          open("|git log --raw -- #{escape(page).untaint}") do |f|
-            all_log = f.read
-          end
-        end
-        all_log.split(/^commit (?:[a-fA-F\d]+)\n/).each do |log|
-          if /\AAuthor:\s*(.*?)\nDate:\s*(.*?)\n(.*?)
-              \n:\d+\s\d+\s[a-fA-F\d]+(?:\.{3})?\s([a-fA-F\d]+)(?:\.{3})?\s\w
-                 \s+#{Regexp.escape(escape(page))}\n+\z/xm =~ log
-            revs << [$4,
-                     Time.parse("#{$2}Z").localtime.strftime("%Y/%m/%d %H:%M:%S"),
-                     "", # $1,
-                     $3.strip]
+          open("|git log --date=iso --pretty=format:'%h\t%ad\t%s'  -- #{escape(page).untaint}") do |f|
+            f.each_line do |line|
+              hash,date,subject = line.chomp.split(/\t/)
+              revs << [hash, date, '', subject]
+            end
           end
         end
         revs
