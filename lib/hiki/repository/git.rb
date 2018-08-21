@@ -62,7 +62,7 @@ module Hiki
         end
         all_log.split(/^commit (?:[a-fA-F\d]+)\n/).each do |log|
           if /\AAuthor:\s*(.*?)\nDate:\s*(.*?)\n(.*?)
-              \n:\d+\s\d+\s[a-fA-F\d]+\.{3}\s([a-fA-F\d]+)\.{3}\s\w
+              \n:\d+\s\d+\s[a-fA-F\d]+(?:\.{3})?\s([a-fA-F\d]+)(?:\.{3})?\s\w
                  \s+#{Regexp.escape(escape(page))}\n+\z/xm =~ log
             revs << [$4,
                      Time.parse("#{$2}Z").localtime.strftime("%Y/%m/%d %H:%M:%S"),
