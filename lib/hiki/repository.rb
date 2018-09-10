@@ -1,6 +1,11 @@
 require "hiki/registry"
 
 module Hiki
+  module FarmRepository
+    REGISTRY = Registry.new(:farmrepository)
+    extend Registry::ClassMethods
+  end
+
   module Repository
     REGISTRY = Registry.new(:repository)
     extend Registry::ClassMethods
@@ -16,3 +21,4 @@ require "hiki/repository/plain"
 require "hiki/repository/rdb"
 require "hiki/repository/svn"
 require "hiki/repository/svnsingle"
+require "hiki/repository/gitfarm"

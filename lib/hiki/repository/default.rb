@@ -5,6 +5,22 @@
 require "hiki/repository/base"
 
 module Hiki
+  module FarmRepository
+    class Default < Base
+
+      FarmRepository.register(:default, self)
+
+      def setup
+      end
+
+      def import(wiki)
+      end
+
+      def update(wiki)
+      end
+    end
+  end
+
   module Repository
     class Default < Base
       include Hiki::Util

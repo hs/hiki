@@ -1,6 +1,31 @@
 require "hiki/util"
 
 module Hiki
+  module FarmRepository
+    class Base
+      def initialize(repos_root, data_path)
+        @repos_root = repos_root
+        @data_path = data_path
+      end
+
+      def setup
+        raise "Please override this function."
+      end
+
+      def imported?( wiki )
+        raise "Please override this function."
+      end
+
+      def import( wiki )
+        raise "Please override this function."
+      end
+
+      def update( wiki )
+        raise "Please override this function."
+      end
+    end
+  end
+
   module Repository
     class Base
       def initialize(root, data_path)

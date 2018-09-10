@@ -80,8 +80,6 @@ class HikifarmConfig
   end
 end
 
-
-
 class Wiki
   attr_reader :name, :title, :mtime, :last_modified_page, :pages_num, :pages
   def initialize(name, data_root)
@@ -95,7 +93,7 @@ class Wiki
         end
       end
     rescue
-      @title = "#{name}'s Wiki"
+      @title = "#{name} Wiki"
     end
 
     pages = Dir["#{data_root}/#{name}/text/*"]
@@ -122,8 +120,9 @@ class Hikifarm
   attr_reader :wikilist
   
   def initialize(farm_pub_path, ruby, repos_type, repos_root, data_root)
-    require "hiki/repos/#{repos_type}"
-    @repos = Hiki::const_get("HikifarmRepos#{repos_type.capitalize}").new(repos_root, data_root)
+    raise "farm_pub_path not found." unless FileTest.directory?(farm_pub_path)
+    require "hiki/repository/#{repos_type}"
+    @repos = Hiki::FarmRepository::REGISTRY[repos_type].new(repos_root, data_root)
     @ruby = ruby
     @wikilist = []
     @farm_pub_path = farm_pub_path
@@ -222,14 +221,14 @@ INDEX
   end
 
   def attach(wiki, hiki)
-<<-INDEX
+<<-ATTACH
 #!#{@ruby}
 hiki=''
 charset = ''
 eval( open( '../hikifarm.conf' ){|f|f.read.untaint} )
-$:.unshift "\#{hiki}"
+$:.unshift "\#{hiki}", "\#{hiki}/lib"
 load "\#{hiki}/misc/plugin/attach/attach.cgi"
-INDEX
+ATTACH
   end
 
 end
@@ -489,6 +488,7 @@ end
 
 class App
   def initialize(conf)
+    require 'hiki/app'
     @conf = conf
     @farm = Hikifarm.new(File.dirname(__FILE__), @conf.ruby, @conf.repos_type, @conf.repos_root, @conf.data_root)
     @cgi = conf.cgi
@@ -564,6 +564,6 @@ if __FILE__ == $0 || ENV['MOD_RUBY']
   $SAFE = 1
   $:.delete(".") if File.writable?(".")
   conf = HikifarmConfig.new
-  $:.unshift(conf.hiki)
+  $:.unshift(conf.hiki, "#{conf.hiki}/lib")
   App.new(conf).run
 end
