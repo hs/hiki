@@ -59,27 +59,16 @@ index.cgiには実行権限を付け、hikifarm.confは自分の環境に合わ�
 CGIを設置したディレクトリにブラウザからアクセスすれば、HikiFarmの画面
 が現れます。
 
-CVS/Subversion バックエンドを用いる場合は、vc-backend-setup.cgi
-を実行してください。
+!! Gitfarm バックエンドについて
+Hikifarm では、バージョン管理のバックエンドとして Gitfarm を使うことが
+できます。これを利用する場合は repos_type を 'gitfarm' に設定してくだ
+さい。
 
-!! CVS/Subversion バックエンドについて
-Hikifarm では、バージョン管理のバックエンドとして
-CVS もしくは Subversion を使うことができます。
-CVS を用いる場合は repos_type を 'cvs' に、
-Subversion を各 Wiki ごとのリポジトリで使用する場合は repos_type を 'svn' に、
-Subversion を Hikifarm 全体で単一リポジトリで使用する場合は repos_type を
-'svnsingle' に設定してください。
+また、git の管理ディレクトリはデフォルトではデータ保存ディレクトリの
+下に'.git'という名前で作成されますが、repos_root の設定により、任意の
+場所に変更することができます。(例： /home/foo/var/git)
 
-なお、CVS/Subversion バックエンドを用いる場合は、
-Hikifarm 設置完了後に vc-backend-setup.cgi を実行してください。
-これを実行しないと、バージョン管理が正しくなされません。
-
-実行方法は、vc-backend-setup.cgi を Hikifarm の index.cgi を設置したディ
-レクトリにコピーし、CGI としてアクセスすれば OK です (シェルが使える場合
-は、コマンドラインから実行してもかまいません)。
-
-!! attach プラグインについて
-Hikifarm内のWikiでattachプラグインを使う場合、以下の手順になります。
-# Hikiのインストールパスにmisc/plugin/attach/attach.cgiをコピー
-# hikifarmを設置した場所に作成されたWiki名のディレクトリにmisc/hikifarm/attach.cgiをコピー
-# Wikiの管理ページでattach.rbプラグインを有効にする
+管理ディレクトリをデフォルト以外の場所にする際は、あらかじめ作成して、
+Webサーバの権限で書き込み可能にしておきます。管理ディレクトリはCGIへ
+のアクセス時に存在しなければ自動作成を試みますが、その場合は親ディレ
+クトリへのWebサーバの権限での書き込み許可が必要になります。
