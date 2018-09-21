@@ -12,7 +12,7 @@ module Hiki
         super
         git_opt = @repos_root.to_s.empty? ? '' : "--separate-git-dir=#{@repos_root}"
 
-        unless FileTest.exist?("#{@data_path}/.git")
+        unless FileTest.exist?("#{@data_path}/.git") && (@repos_root.to_s.empty? || FileTest.directory?(@repos_root))
           require 'fileutils'
           Dir.chdir(@data_path) do
             unless system("git init #{git_opt} > /dev/null 2>&1")
