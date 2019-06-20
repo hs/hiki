@@ -114,28 +114,35 @@ class Wiki
 end
 
 class Hikifarm
-  attr_reader :wikilist
+  attr_reader :wikilist, :repos, :farm_pub_path, :data_root
   
   def initialize(farm_pub_path, ruby, repos_type, repos_root, data_root)
     raise "farm_pub_path not found." unless FileTest.directory?(farm_pub_path)
     require "hiki/repository/#{repos_type}"
     @repos = Hiki::FarmRepository::REGISTRY[repos_type].new(repos_root, data_root)
     @ruby = ruby
-    @wikilist = []
     @farm_pub_path = farm_pub_path
+    @data_root = data_root
 
-    Dir["#{farm_pub_path}/*"].each do |wiki|
+    load_wikilist
+  end
+
+  def load_wikilist
+    @wikilist = []
+    Dir["#{@farm_pub_path}/*"].each do |wiki|
       wiki.untaint
       next if not FileTest.directory?(wiki)
       next if FileTest.symlink?(wiki)
       next if not FileTest.file?("#{wiki}/hikiconf.rb")
 
       begin
-        @wikilist << Wiki.new(File.basename(wiki), data_root)
+        @wikilist << Wiki.new(File.basename(wiki), @data_root)
       rescue
       end
     end
   end
+
+  alias reload load_wikilist
 
   def wikis_num
     @wikilist.size
@@ -145,7 +152,8 @@ class Hikifarm
     @wikilist.inject(0){|result, wiki| result + wiki.pages_num}
   end
 
-  def create_wiki(name, hiki, cgi_name, attach_cgi_name, data_root, default_pages_path)
+  def create_wiki(name, hiki, cgi_name, attach_cgi_name, default_pages_path)
+    raise "'#{name}' というWikiサイトは既に存在します" if Dir.exist?("#{@farm_pub_path}/#{name.untaint}")
     Dir.mkdir("#{@farm_pub_path}/#{name.untaint}")
 
     File.open("#{@farm_pub_path}/#{name}/#{cgi_name}", 'w') do |f|
@@ -164,17 +172,28 @@ class Hikifarm
       f.puts(conf(name, hiki))
     end
 
-    Dir.mkdir("#{data_root}/#{name}")
-    Dir.mkdir("#{data_root}/#{name}/text")
-    Dir.mkdir("#{data_root}/#{name}/backup")
-    Dir.mkdir("#{data_root}/#{name}/cache")
+    Dir.mkdir("#{@data_root}/#{name}")
+    Dir.mkdir("#{@data_root}/#{name}/text")
+    Dir.mkdir("#{@data_root}/#{name}/backup")
+    Dir.mkdir("#{@data_root}/#{name}/cache")
     require 'fileutils'
     Dir["#{default_pages_path}/*"].each do |f|
       f.untaint
-      FileUtils.cp(f, "#{data_root}/#{name}/text/#{File.basename(f)}") if File.file?(f)
+      FileUtils.cp(f, "#{@data_root}/#{name}/text/#{File.basename(f)}") if File.file?(f)
     end
 
     @repos.import(name)
+  end
+
+  def destroy_wiki(name)
+    name.untaint
+    raise "'#{name}' というWikiサイトはありません" unless Dir.exist?("#{@farm_pub_path}/#{name.untaint}")
+    @repos.destroy(name) if @repos.respond_to?(:destroy)
+
+    require 'fileutils'
+    FileUtils.rm_rf("#{@farm_pub_path}/#{name}")
+    FileUtils.rm_rf("#{@data_root}/#{name}")
+    reload
   end
 
   def command_key
@@ -325,6 +344,21 @@ class HikifarmIndexPage < ErbPage
     end
     @headings['Last-Modified'] = CGI::rfc1123_date( wikilist[0].mtime ) unless wikilist.empty?
     r << "</table>\n"
+  end
+
+  def wikisite_select
+    r = ''
+    r << %Q|<select name="wiki">\n|
+    r << %Q| <option value="">（選択してください）</option>\n|
+    wikilist = @farm.wikilist.sort{ |a,b| a.name <=> b.name }
+    wikilist.each do |wiki|
+      r << %Q| <option value="#{wiki.name}">#{wiki.name}</option>\n|
+    end
+    r << %Q|</select>\n|
+  end
+
+  def wikisite_destroy
+    ''
   end
 end
 
@@ -501,15 +535,29 @@ class App
                                  @conf.hikifarm_description,
                                  @conf.author, @conf.mail, @conf.title)
     elsif 'POST' == @cgi.request_method and @cgi.params['wiki'][0] and @cgi.params['wiki'][0].length > 0
-      begin
-        name = @cgi.params['wiki'][0]
-        raise '英数字のみ指定できます' if /\A[a-zA-Z0-9]+\z/ !~ name
-        @farm.create_wiki(name, @conf.hiki, @conf.cgi_name, @conf.attach_cgi_name, @conf.data_root, @conf.default_pages)
+      if 'create' == @cgi.params['op'][0]
+        begin
+          name = @cgi.params['wiki'][0]
+          raise "#{name}:英数字以外の文字は使えません" if /\A[a-zA-Z0-9]+\z/ !~ name
+          @farm.create_wiki(name, @conf.hiki, @conf.cgi_name, @conf.attach_cgi_name, @conf.default_pages)
 
-        print @cgi.header({'Location' => hikifarm_uri})
-        exit
-      rescue
-        msg = %Q|#{$!.to_s}\n#{$@.join("\n")}|
+          print @cgi.header({'Location' => hikifarm_uri})
+          exit
+        rescue
+          msg = %Q|#{$!.to_s}\n#{$@.join("\n")}|
+          msg = %Q|#{$!.to_s}\n|
+          #msg << %Q|#{$@.join("\n")}|
+        end
+      elsif 'destroy' == @cgi.params['op'][0]
+        begin
+          name = @cgi.params['wiki'][0]
+          @farm.destroy_wiki(name)
+        rescue
+          msg = %Q|#{$!.to_s}\n|
+          #msg << %Q|#{$@.join("\n")}|
+        end
+      else
+        msg = "不正な操作です"
       end
     end
     page ||= HikifarmIndexPage.new(@farm, hikifarm_uri, @conf.hikifarm_template_dir, @conf.charset,

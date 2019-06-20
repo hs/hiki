@@ -30,7 +30,7 @@ class Repos_Gitfarm_Tests < Test::Unit::TestCase
     @farm = Hikifarm.new(@farm_pub_path, '/usr/bin/env ruby', :gitfarm, @repos_root, @data_dir)
     @repos = Hiki::Repository::Gitfarm.new(@repos_root, "#{@data_dir}/#{@wiki}")
     # test Wiki
-    @farm.create_wiki(@wiki, '', 'index.cgi', nil, @data_dir, @default_pages_path)
+    @farm.create_wiki(@wiki, '', 'index.cgi', nil, @default_pages_path)
   end
 
   def teardown
@@ -90,7 +90,7 @@ class Repos_Gitfarm_Tests < Test::Unit::TestCase
   def test_new_wiki
     wiki = 'wikitiki'
 
-    @farm.create_wiki(wiki, '', 'index.cgi', 'attach.cgi', @data_dir, @default_pages_path)
+    @farm.create_wiki(wiki, '', 'index.cgi', 'attach.cgi', @default_pages_path)
     # public directory and files
     assert(File.directory?("#{@farm_pub_path}/#{wiki}"))
     assert(File.exist?("#{@farm_pub_path}/#{wiki}/index.cgi"))
@@ -122,6 +122,16 @@ class Repos_Gitfarm_Tests < Test::Unit::TestCase
       object = git("hash-object", "#{wiki}/text/FooBar")
       assert_false(object.nil?)
       assert_equal('foobar', git("cat-file", "blob", object))
+    end
+  end
+
+  def test_destroy_wiki
+    wiki = 'wikiwiki'
+    @farm.destroy_wiki(wiki)
+    assert_false(File.directory?("#{@farm_pub_path}/#{wiki}"))
+    Dir.chdir(@data_dir) do
+      object = git("ls-files", wiki)
+      assert(object.to_s.empty?)
     end
   end
 

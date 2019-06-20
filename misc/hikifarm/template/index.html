@@ -37,12 +37,35 @@
          </div>
          <div class="field title">
            Wiki の名前 (英数字のみ):
+           <input type="hidden" name="op" value="create">
            <input class="field" name="wiki" size="20" value="">
            <input class="submit" type="submit" value="作成">
          </div>
        </form>
      </div>
    </div>
+   <hr class="sep">
+
+   <div class="day">
+     <h2><span class="title">Wiki サイトの削除</span></h2>
+     <div class="form">
+       <form class="update" method="post" action="<%= @hikifarm_uri %>">
+         <div>
+            削除したい Wiki サイトを選択してください。
+         </div>
+         <div class="field title">
+           Wiki の選択:
+           <input type="hidden" name="op" value="destroy">
+           <%= wikisite_select %>
+           <input class="submit" type="submit" value="削除" onclick='return confirm("削除してもよろしいですか？");'>
+         </div>
+       </form>
+     </div>
+
+      <div class="body"><div class="section">
+      </div></div>
+   </div>
+
    <hr class="sep">
    <%= @footer_content if @footer_content %>
    <div class="footer">

@@ -64,6 +64,13 @@ module Hiki
           system("git commit -q -m \"Upadte #{wiki} from #{ENV['REMOTE_ADDR']}\" > /dev/null 2>&1".untaint)
         end
       end
+
+      def destroy(wiki)
+        Dir.chdir("#{@data_path}") do
+          system("git rm -r -- #{wiki} > /dev/null 2>&1")
+          system("git commit -q -m \"Destroy #{wiki} from #{ENV['REMOTE_ADDR']}\" > /dev/null 2>&1".untaint)
+        end
+      end
     end
   end
 
