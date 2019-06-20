@@ -5,13 +5,7 @@ require 'hiki/farm/wiki'
 require 'hiki/farm/manager'
 require 'hiki/farm/dispatcher'
 require 'hiki/farm/page'
-
-module Hiki
-  module Farm
-    VERSION = '2.0.0.pre1'
-    RELEASE_DATE = '2014-08-13'
-  end
-end
+require 'hiki/farm/version'
 
 # for backward compatibility
 HIKIFARM_VERSION = Hiki::Farm::VERSION

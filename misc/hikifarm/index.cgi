@@ -1,9 +1,6 @@
 #!/usr/bin/env ruby
 # -*- coding: utf-8 -*-
 
-HIKIFARM_VERSION = '0.8.6'
-HIKIFARM_RELEASE_DATE = '2006-07-21'
-
 class HikifarmConfig
   attr_reader :ruby, :hiki, :hikifarm_description
   attr_reader :default_pages, :data_root, :repos_type, :repos_root, :charset
@@ -230,7 +227,6 @@ $:.unshift "\#{hiki}", "\#{hiki}/lib"
 load "\#{hiki}/misc/plugin/attach/attach.cgi"
 ATTACH
   end
-
 end
 
 
@@ -239,6 +235,8 @@ class ErbPage
   attr_reader :headings
 
   def initialize(template_dir, charset)
+    require 'hiki/farm/version'
+
     @headings = {
       'type' => "text/html; charset=#{charset}"
     }
@@ -405,7 +403,7 @@ class HikifarmRSSPage < ErbPage
   end
     
   def dc_creator
-    version = "#{HIKIFARM_VERSION} (#{HIKIFARM_RELEASE_DATE})"
+    version = "#{Hiki::Farm::VERSION} (#{Hiki::Farm::RELEASE_DATE})"
     creator = "HikiFarm version #{version}"
     dc_tag("creator", creator)
   end
