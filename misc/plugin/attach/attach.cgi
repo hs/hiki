@@ -5,10 +5,10 @@ BEGIN { $stdout.binmode }
 
 $SAFE     = 1
 
-if FileTest.symlink?( __FILE__ ) then
-  org_path = File.dirname( File.expand_path( File.readlink( __FILE__ ) ) )
+if FileTest.symlink?( __FILE__.untaint ) then
+  org_path = File.dirname( File.expand_path( File.readlink( __FILE__.untaint ) ) )
 else
-  org_path = File.dirname( File.expand_path( __FILE__ ) )
+  org_path = File.dirname( File.expand_path( __FILE__.untaint ) )
 end
 $:.unshift( org_path.untaint, "#{org_path.untaint}/hiki" )
 $:.delete(".") if File.writable?(".")
@@ -38,7 +38,7 @@ def attach_file
   cgi = CGI.new
 
   params     = cgi.params
-  page       = params['p'] ? params['p'].first.read : 'FrontPage'
+  page       = params['p'].first ? params['p'].first.read : 'FrontPage'
   command = params['command'].first ? params['command'].first.read : 'view'
   command = 'view' unless ['view', 'edit'].index(command)
   r = ''
